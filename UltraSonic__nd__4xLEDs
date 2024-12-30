@@ -1,0 +1,92 @@
+// Declaring TriggerPIN, EchoPIN, 4xLED PINs:
+const int trigPin = 7;
+const int echoPin = 8;
+const int pin1 = 3;
+const int pin2 = 4;
+const int pin3 = 5;
+const int pin4 = 6;
+
+// Defining 4 limits of distance: Far away 17cm, Neutral 12cm, Close 7cm, very close 3cm.
+const int threshold_vclose = 3;
+const int threshold2_close = 7;
+const int threshold3_neutral = 12;
+const int threshold4_far = 17;
+
+// Categorizing which PINs are going to be Output and Input + initializing the Serial connection
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  pinMode(pin1, OUTPUT);
+  pinMode(pin2, OUTPUT);
+  pinMode(pin3, OUTPUT);
+  pinMode(pin4, OUTPUT);
+
+// Ensure all pins are OFF initially using a Function
+  resetPins();
+}
+
+void loop() {
+  // Measure distance
+  long duration = measureDuration();
+  long cm = microsecondsToCentimeters(duration);
+
+  // Debugging output
+  Serial.print(cm);
+  Serial.println("cm");
+
+  // Update LED states based on distance
+  updatePins(cm);
+
+  delay(100);
+}
+
+void updatePins(int cm) {
+  // Creating a State matrix for LED behavior based on the 4 limits:
+  int states[][4] = {
+    {HIGH, HIGH, HIGH, HIGH}, // cm >= threshold4_far
+    {LOW,  HIGH, HIGH, HIGH}, // cm < threshold4_far && cm >= threshold3_neutral
+    {LOW,  LOW,  HIGH, HIGH}, // cm < threshold3_neutral && cm >= threshold2_close
+    {LOW,  LOW,  LOW,  HIGH}, // cm < threshold2_close && cm >= threshold_vclose
+    {LOW,  LOW,  LOW,  LOW}   // cm < threshold_vclose
+  };
+
+  // Determine the correct index based on cm (distance)
+  int index;
+  if (cm >= threshold4_far) index = 0;
+  else if (cm >= threshold3_neutral) index = 1;
+  else if (cm >= threshold2_close) index = 2;
+  else if (cm >= threshold_vclose) index = 3;
+  else index = 4;
+
+  // Apply the corresponding states to the pins
+  digitalWrite(pin1, states[index][0]);
+  digitalWrite(pin2, states[index][1]);
+  digitalWrite(pin3, states[index][2]);
+  digitalWrite(pin4, states[index][3]);
+}
+
+long measureDuration() {
+  // Send a trigger pulse
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  // Read the echo pin for the duration
+  return pulseIn(echoPin, HIGH);
+}
+
+long microsecondsToCentimeters(long microseconds) {
+  return microseconds / 29 / 2; // Convert microseconds to cm
+}
+
+void resetPins() {
+  digitalWrite(pin1, LOW);
+  digitalWrite(pin2, LOW);
+  digitalWrite(pin3, LOW);
+  digitalWrite(pin4, LOW);
+}
